@@ -1,0 +1,8 @@
+Flask==2.3.2
+tensorflow==2.13.0
+numpy==1.24.3
+mysql-connector-python==8.0.33
+pyTelegramBotAPI==4.12.0
+pyngrok==6.0.0
+openai==0.27.8
+WooCommerce==3.0.0
