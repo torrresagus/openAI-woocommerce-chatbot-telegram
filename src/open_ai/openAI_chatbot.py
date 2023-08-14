@@ -1,5 +1,6 @@
 import os
 from database.product_search_cosine_similarity import products
+import database.database_operations as db
 import openai
 from . import user_to_embeding
 
@@ -92,6 +93,16 @@ def process_user_message(user_input, all_messages, debug=True):
         neg_str = "I'm unable to provide the information you're looking for. Ask me again."
         return neg_str, all_messages
 
-def chat_with_bot(user_input, all_messages):
-    response, all_messages = process_user_message(user_input, all_messages)
-    return response, all_messages
+def chat_with_bot(user_input, chat_id):
+    previous_messages = db.get_all_messages(chat_id)
+    response, all_messages = process_user_message(user_input, previous_messages)
+    
+    # Guardar los mensajes actualizados en la base de datos
+    db.save_chat_messages(chat_id, all_messages)  # Guarda el mensaje del usuario
+
+    print("Chat ID:", chat_id)
+    print("User input:", user_input)
+    print("Bot response:", response)
+    print("All messages:", all_messages)
+
+    return response

@@ -77,48 +77,42 @@ def create_or_update_payment_gateways(data):
         cursor.close()
         connection.close()
 
-#   Function to save chat messages in the 'chat_messages' table.
-def save_chat_message(all_messages):
-#   Get the connection to the database
+def save_chat_messages(chat_id, messages):
     connection = mysql_connection.create_connection()
     if connection is None:
         print("Error connecting to the database.")
         return
 
-    try:
-    #   Create cursor
-        cursor = connection.cursor()
+    cursor = connection.cursor()
 
-    #   Create the 'chat_messages' table if it does not exist
+    try:
+        # Crear la 'chat_messages' table si no existe.
         if not check_table_exists('chat_messages'):
             cursor.execute("""
                 CREATE TABLE chat_messages (
                 chat_id INT PRIMARY KEY,
-                message TEXT
-                )
+                messages JSON
+                )   
             """)
-
             print("Tabla 'chat_messages' creada.")
+    except mysql.connector.Error as err:
+        print("Error creating table:", err)
 
-    #   Insert or update chat messages in the 'chat_messages' table.
-        for message in all_messages:
-            cursor.execute("""
-                INSERT INTO chat_messages (chat_id, message)
-                VALUES (%s, %s)
-                ON DUPLICATE KEY UPDATE
-                message = VALUES(message)
-            """, (message.chat.id, message.text))
+    try:
+        cursor.execute("""
+            INSERT INTO chat_messages (chat_id, messages)
+            VALUES (%s, %s)
+            ON DUPLICATE KEY UPDATE messages = %s
+        """, (chat_id, json.dumps(messages), json.dumps(messages)))
 
         connection.commit()
-        print("Chat messages saved successfully.")
+    except mysql.connector.Error as err:
+        print("Error executing query:", err)
+        connection.rollback()
 
-    except mysql.connector.Error as error:
-        print("Error saving chat messages: ", error)
+    cursor.close()
+    connection.close()
 
-    finally:
-        # Close cursor and connection
-        cursor.close()
-        connection.close()
 
 # Function to create or update the 'products' and 'categories' tables with the provided data.
 def create_or_update_tables_products(data):
@@ -405,3 +399,28 @@ def create_or_update_embeddings_table():
         cursor.close()
         connection.close()
         print("Database connection closed.")
+
+def get_all_messages(chat_id):
+    connection = mysql_connection.create_connection()
+    if connection is None:
+        print("Error connecting to the database.")
+        return []
+
+    cursor = connection.cursor()
+    
+    try:
+        cursor.execute("SELECT messages FROM chat_messages WHERE chat_id=%s", (chat_id,))
+        results = cursor.fetchone()
+        
+        if results:
+            messages = json.loads(results[0])
+        else:
+            messages = []
+    except mysql.connector.Error as err:
+        print("Error executing query:", err)
+        messages = []
+
+    cursor.close()
+    connection.close()
+
+    return messages
